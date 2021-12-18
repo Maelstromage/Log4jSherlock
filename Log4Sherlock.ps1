@@ -3,45 +3,89 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $filetypes = @('*.JAR','*.WAR','*.EAR','*.JPI','*.HPI')
 $global:Errors = @()
 $global:vulnerabilityresults = @()
+$global:debuglog = @()
+
+
+# CVE-2021-44228 Apache Log4j2 2.0-beta9 through 2.12.1 and 2.13.0 through 2.15.0 JNDI Score: 10.0 CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+# CVE-2021-45046 Apache Log4j 2.15.0 Score: 9.0 (AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H)
+# CVE-2021-45105 Apache Log4j2 versions 2.0-alpha1 through 2.16.0 Score: 7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H)
+
+function Check-Version{
+    param($version)
+    
+    $CVE = 'CVE-2021-44228'
+    $CVSSScore = '10.0'
+    $FixedVersion = $false
+    if($version -eq 'version=2.15.0'){$CVE = 'CVE-2021-45046'; $CVSSScore = '9.0'; $FixedVersion = $false}
+    if($version -eq 'version=2.16.0'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $true}
+    if($version -eq 'version=2.17.0'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
+    if($version -eq 'version=2.12.2'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $true}
+    $return = @{CVE = $CVE; CVSSScore = $CVSSScore; fixedversion = $fixedversion} 
+    
+    return $return
+}
+
 
 function Scan-File{
     param($path)
+    $path = $path.fullname
     $hasJNDI = $false
     try{
-        $nestedfiles = ([System.IO.Compression.ZipArchive]([System.IO.Compression.ZipFile]::OpenRead($path))).Entries.name
+        #$nestedfiles = ([System.IO.Compression.ZipArchive]([System.IO.Compression.ZipFile]::OpenRead($path))).Entries.name
+        $nestedfiles = ([System.IO.Compression.ZipArchive]([System.IO.Compression.ZipFile]::OpenRead($path))).Entries | where {$_.name -eq 'jndiLookup.class'}
     }catch{
-        $global:Errors += @{Error=$_.exception.Message;path=$path.fullname}
+        $global:Errors += @{Error=$_.exception.Message;path=$path}
     }
     foreach($nestedfile in $nestedfiles) {
-        if ($nestedfile -eq 'JndiLookup.class'){
+        if ($nestedfile.name -eq 'JndiLookup.class'){
             $hasJNDI = $true
+            $JNDIfile = $nestedfile.fullname
         }
     }
+
     try{
-        $zip = [io.compression.zipfile]::OpenRead($path) | out-null
+        $zip = [io.compression.zipfile]::OpenRead($path) #| out-null
     }catch{
-        $global:Errors += @{Error=$_.exception.Message;path=$path.fullname}
+        $global:Errors += @{Error=$_.exception.Message;path=$path}
     }
     #$file = $zip.Entries | where-object { $_.FullName -eq "META-INF/maven/org.apache.logging.log4j/log4j-core/pom.properties"}
     $file = $zip.Entries | where-object { $_.Name -eq "pom.properties" -and $_.FullName -match 'log4j'}
+    #global:debuglog = $zip
     if($file -ne $null){
+        
         $stream = $file.Open()
         $reader = New-Object IO.StreamReader($stream)
         $text = $reader.ReadToEnd()
+        
         $version = -split $text | select-string -Pattern "Version"
+        
         #$version = $version.ToString()
         $reader.Close()
         $stream.Close()
         $zip.Dispose()
     }
-    if ($hasJNDI -and $version -ne 'version=2.16.0'){
+    $versionCVE = (Check-Version -version $version.line)
+    
+    if ($hasJNDI -and !($versionCVE.fixedversion)){
         $vuln = $true
         $foundMessage = "Found Vulnerability in $path log4j $version"
         write-host -ForegroundColor red $foundMessage
         $global:vulnerabilityresults += $foundMessage
     }else{$vuln = $false}
-    $return = @{path = $path.fullname;version = $version.line;text=$text;classLocation=$file.FullName;hasJNDI=$hasJNDI}
+    $return = @{
+        path = $path;
+            version = $version.line;
+            text=$text;
+            pomLocation=$file.FullName;
+            hasJNDI=$hasJNDI;
+            JNDILocation=$JNDIfile
+            CVE = $versionCVE.CVE
+            CVSSScore = $versionCVE.CVSSScore
+            FixedVersion = $versionCVE.fixedversion
+
+    }
     #if ($hasJNDI -and $version -ne 'version=2.16.0'){}
+    
     return $return
 }
 
@@ -50,7 +94,7 @@ function Scan-System{
     $scannedfiles =@()
     $DriveErrors = @()
     $Drives = (Get-PSDrive -PSProvider FileSystem | Select-Object Root, DisplayRoot | Where-Object {$_.DisplayRoot -eq $null}).root
-    #$drives = @('c:\test','g:\test')
+    $drives = @('c:\test','g:\test')
     foreach ($Drive in $Drives) {
         $searchingmessage = "Searching Drive $drive on host $env:ComputerName..."
         write-host $searchingmessage
