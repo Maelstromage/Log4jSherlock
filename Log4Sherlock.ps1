@@ -21,11 +21,12 @@ function display-logo{
 
 }
 function Check-Version{
-    param($version)
+    param($version,$hasJNDI)
     
     $CVE = 'CVE-2021-44228'
     $CVSSScore = '10.0'
     $FixedVersion = $false
+    if($hasJNDI -eq $false){$CVE = $null; $CVSSScore = $null; $FixedVersion = $false}
     if($version -eq 'version=2.15.0'){$CVE = 'CVE-2021-45046'; $CVSSScore = '9.0'; $FixedVersion = $false}
     if($version -eq 'version=2.16.0'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $true}
     if($version -eq 'version=2.17.0'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
@@ -74,11 +75,12 @@ function Scan-File{
         $stream.Close()
         $zip.Dispose()
     }
-    $versionCVE = (Check-Version -version $version.line)
+    $versionCVE = (Check-Version -version $version.line -hasJNDI $hasJNDI)
     
     if ($hasJNDI -and !($versionCVE.fixedversion)){
         $vuln = $true
         write-console -CVE $versionCVE.CVE -path $path -version $version
+
     }else{$vuln = $false}
     $return = @{
         path = $path;
@@ -111,7 +113,7 @@ function Scan-System{
         }
     }
     $global:csv = $Scannedfiles
-    $scannedfiles += @{Error=$DriveError.exception.message}
+    $global:Errors += @{Error=$DriveError.exception.message}
     $scannedfiles += $global:Errors
     $scannedfiles = convertto-json $scannedfiles
     return $scannedfiles
