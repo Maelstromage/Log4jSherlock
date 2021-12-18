@@ -4,6 +4,8 @@ $filetypes = @('*.JAR','*.WAR','*.EAR','*.JPI','*.HPI')
 $global:Errors = @()
 $global:vulnerabilityresults = @()
 $global:debuglog = @()
+$global:color = 'Magenta'
+$global:csv = @()
 
 
 # CVE-2021-44228 Apache Log4j2 2.0-beta9 through 2.12.1 and 2.13.0 through 2.15.0 JNDI Score: 10.0 CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
@@ -12,7 +14,7 @@ $global:debuglog = @()
 
 function display-logo{
     $logo = " ██▓     ▒█████    ▄████       ▄▄▄  ▄▄▄██▀▀▀██████  ██░ ██ ▓█████  ██▀███   ██▓     ▒█████   ▄████▄   ██ ▄█▀`r`n▓██▒    ▒██▒  ██▒ ██▒ ▀█▒    ▄████▒   ▒██ ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██ ▒ ██▒▓██▒    ▒██▒  ██▒▒██▀ ▀█   ██▄█▒ `r`n▒██░    ▒██░  ██▒▒██░▄▄▄░  ▄█▀  ██▒   ░██ ░ ▓██▄   ▒██▀▀██░▒███   ▓██ ░▄█ ▒▒██░    ▒██░  ██▒▒▓█    ▄ ▓███▄░ `r`n▒██░    ▒██   ██░░▓█  ██▓ ██▄▄▄▄██░▓██▄██▓  ▒   ██▒░▓█ ░██ ▒▓█  ▄ ▒██▀▀█▄  ▒██░    ▒██   ██░▒▓▓▄ ▄██▒▓██ █▄ `r`n░██████▒░ ████▓▒░░▒▓███▀▒▒▓▓▓   ██  ▓███▒ ▒██████▒▒░▓█▒░██▓░▒████▒░██▓ ▒██▒░██████▒░ ████▓▒░▒ ▓███▀ ░▒██▒ █▄`r`n░ ▒░▓  ░░ ▒░▒░▒░  ░▒   ▒ ░░▒▓   █▓  ▒▓▒▒░ ▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒░░ ▒░ ░░ ▒▓ ░▒▓░░ ▒░▓  ░░ ▒░▒░▒░ ░ ░▒ ▒  ░▒ ▒▒ ▓▒`r`n░ ░ ▒  ░  ░ ▒ ▒░   ░   ░ ░ ▒▒   ▒   ▒ ░▒░ ░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░  ░▒ ░ ▒░░ ░ ▒  ░  ░ ▒ ▒░   ░  ▒   ░ ░▒ ▒░`r`n  ░ ░   ░ ░ ░ ▒  ░ ░   ░    ▒   ░   ░ ░ ░ ░  ░  ░   ░  ░░ ░   ░     ░░   ░   ░ ░   ░ ░ ░ ▒  ░        ░ ░░ ░ `r`n    ░  ░    ░ ░        ░ ░  ░       ░   ░       ░   ░  ░  ░   ░  ░   ░         ░  ░    ░ ░  ░ ░      ░  ░   `r`n                                                                                  ░               `r`n"
-    write-host $logo -foreground Magenta
+    write-host $logo -foreground $global:color
     write-host "Version: 1.0.2021.12.18"
     write-host "Written by Maelstromage"
     write-host "https://github.com/Maelstromage/Log4jSherlock`r`n"
@@ -35,7 +37,7 @@ function Check-Version{
 
 function write-console{
     param($CVE,$path,$version)
-    $color = 'Magenta'
+    $color = $global:color
     write-host "┌[$CVE] Version: $version" -ForegroundColor $color
     write-host "└─[" -ForegroundColor $color -NoNewline
     write-host " Located: $path"
@@ -88,6 +90,7 @@ function Scan-File{
             CVE = $versionCVE.CVE
             CVSSScore = $versionCVE.CVSSScore
             FixedVersion = $versionCVE.fixedversion
+            Vulnerable = $vuln
     }
     return $return
 }
@@ -97,27 +100,40 @@ function Scan-System{
     $scannedfiles =@()
     $DriveErrors = @()
     $Drives = (Get-PSDrive -PSProvider FileSystem | Select-Object Root, DisplayRoot | Where-Object {$_.DisplayRoot -eq $null}).root
-    $drives = @('c:\test','g:\test')
+    #$drives = @('c:\test','g:\test\')
     foreach ($Drive in $Drives) {
         $searchingmessage = "Searching Drive $drive on host $env:ComputerName..."
         write-host $searchingmessage -ForegroundColor Cyan
         $global:vulnerabilityresults += $searchingmessage
         $javaFiles = Get-ChildItem $Drive -Recurse -ErrorVariable DriveError -include $filetypes -ErrorAction SilentlyContinue #| out-null
         foreach ($javaFile in $javaFiles){
-            $scannedfiles += Scan-File $javaFile
+            $scannedfiles += [pscustomobject](Scan-File $javaFile)
         }
     }
+    $global:csv = $Scannedfiles
     $scannedfiles += @{Error=$DriveError.exception.message}
     $scannedfiles += $global:Errors
     $scannedfiles = convertto-json $scannedfiles
     return $scannedfiles
 }
 
+
+
 display-logo
 If(!(Test-Path "$env:SystemDrive\Log4jSherlock")) { New-Item -ItemType Directory "$env:SystemDrive\Log4jSherlock" -Force }
 $date = get-date -Format "yyyy-MM-dd_hh-mm-ss"
 $results = Scan-System -filetypes $filetypes
+Write-Host $global:Errors
+
+
 $jsonpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.json"
 $resultpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.txt"
+$csvpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.csv"
+write-host "`r`nWriting Json to $jsonpath..."
 set-content -path $jsonpath -value $results
+write-host "`r`nWriting log to $resultpath..."
 Set-Content -path $resultpath -Value $global:vulnerabilityresults
+write-host "`r`nWriting CSV to $csvpath..."
+$global:csv | export-csv $csvpath -NoTypeInformation
+
+
