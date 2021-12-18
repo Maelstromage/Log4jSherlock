@@ -2,6 +2,7 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $filetypes = @('*.JAR','*.WAR','*.EAR','*.JPI','*.HPI')
 $global:Errors = @()
+$global:vulnerabilityresults = @()
 
 function Scan-File{
     param($path)
@@ -35,9 +36,12 @@ function Scan-File{
     }
     if ($hasJNDI -and $version -ne 'version=2.16.0'){
         $vuln = $true
+        $foundMessage = "Found Vulnerability in $path log4j $version"
+        write-host -ForegroundColor red $foundMessage
+        $global:vulnerabilityresults += $foundMessage
     }else{$vuln = $false}
     $return = @{path = $path.fullname;version = $version.line;text=$text;classLocation=$file.FullName;hasJNDI=$hasJNDI}
-    if ($hasJNDI -and $version -ne 'version=2.16.0'){write-host -ForegroundColor red "Found Vulnerability in $path log4j $version"}
+    #if ($hasJNDI -and $version -ne 'version=2.16.0'){}
     return $return
 }
 
@@ -46,8 +50,11 @@ function Scan-System{
     $scannedfiles =@()
     $DriveErrors = @()
     $Drives = (Get-PSDrive -PSProvider FileSystem | Select-Object Root, DisplayRoot | Where-Object {$_.DisplayRoot -eq $null}).root
-    $drives = 'c:\test'
+    #$drives = @('c:\test','g:\test')
     foreach ($Drive in $Drives) {
+        $searchingmessage = "Searching Drive $drive on host $env:ComputerName..."
+        write-host $searchingmessage
+        #$global:vulnerabilityresults += $searchingmessage
         $javaFiles = Get-ChildItem $Drive -Recurse -ErrorVariable DriveError -include $filetypes -ErrorAction SilentlyContinue #| out-null
         foreach ($javaFile in $javaFiles){
             $scannedfiles += Scan-File $javaFile
@@ -60,11 +67,12 @@ function Scan-System{
 }
 
 If(!(Test-Path "$env:SystemDrive\Log4jSherlock")) { New-Item -ItemType Directory "$env:SystemDrive\Log4jSherlock" -Force }
-$date = get-date -Format "yyyy-MM-dd hh:mm:ss"
-
+$date = get-date -Format "yyyy-MM-dd_hh-mm-ss"
 $results = Scan-System -filetypes $filetypes
-
-set-content "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.json" $results
+$jsonpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.json"
+$resultpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.txt"
+set-content -path $jsonpath -value $results
+Set-Content -path $resultpath -Value $global:vulnerabilityresults
 
 
 
