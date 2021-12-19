@@ -185,7 +185,7 @@ function Scan-MultipleSystems{
 
         }
         if ((get-date -Format 'ss')[1] -eq '0'){
-            Get-Job
+            Get-Job -State Running
             write-host "CTRL+C to Quit" -NoNewline
         }
         
