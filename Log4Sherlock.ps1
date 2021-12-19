@@ -184,7 +184,11 @@ function Scan-MultipleSystems{
             }
 
         }
-  
+        if ((get-date -Format 'ss')[1] -eq '0'){
+            Get-Job
+            write-host "CTRL+C to Quit" -NoNewline
+        }
+        
     }while($continue -ne $false)
 }
 function write-logs{
