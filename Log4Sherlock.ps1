@@ -1,13 +1,17 @@
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# Config
 $filetypes = @('*.JAR','*.WAR','*.EAR','*.JPI','*.HPI')
+$global:color = 'Magenta'
+
+#Init
 $global:Errors = @()
 $global:vulnerabilityresults = @()
 $global:debuglog = @()
-$global:color = 'Magenta'
 $global:csv = @()
 
-
+# CVEs Scanned for
 # CVE-2021-44228 Apache Log4j2 2.0-beta9 through 2.12.1 and 2.13.0 through 2.15.0 JNDI Score: 10.0 CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
 # CVE-2021-45046 Apache Log4j 2.15.0 Score: 9.0 (AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H)
 # CVE-2021-45105 Apache Log4j2 versions 2.0-alpha1 through 2.16.0 Score: 7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H)
@@ -148,5 +152,3 @@ write-host "`r`nWriting CSV to $csvpath..."
 $global:csv | export-csv $csvpath -NoTypeInformation
 
 
-write-host "┌[$CVE] Version: $version" -ForegroundColor $color
-    write-host "└─[" -ForegroundColor $color -NoNewline
