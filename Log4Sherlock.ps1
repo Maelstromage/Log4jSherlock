@@ -125,7 +125,16 @@ display-logo
 If(!(Test-Path "$env:SystemDrive\Log4jSherlock")) { New-Item -ItemType Directory "$env:SystemDrive\Log4jSherlock" -Force }
 $date = get-date -Format "yyyy-MM-dd_hh-mm-ss"
 $results = Scan-System -filetypes $filetypes
-Write-Host $global:Errors
+
+write-host "`r`nErrors:`r`n"
+
+$global:vulnerabilityresults += "`r`nErrors:`r`n"
+
+$global:Errors | foreach {
+    $errorMessage = "┌[$($_.Error)`r`n└─[$($_.path)"
+    write-host $errorMessage -ForegroundColor red
+    $global:vulnerabilityresults += $errorMessage
+}
 
 
 $jsonpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.json"
@@ -139,3 +148,5 @@ write-host "`r`nWriting CSV to $csvpath..."
 $global:csv | export-csv $csvpath -NoTypeInformation
 
 
+write-host "┌[$CVE] Version: $version" -ForegroundColor $color
+    write-host "└─[" -ForegroundColor $color -NoNewline
