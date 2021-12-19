@@ -18,7 +18,9 @@ Scans for the following CVEs
 
 # Usage
 1. Download the ps1 file https://raw.githubusercontent.com/Maelstromage/Log4jSherlock/main/Log4Sherlock.ps1
-2. Run as an admin on windows
+2. Create the file computers.txt
+3. Fill computers.txt with hostnames
+4. Run ps1
 
 # How this Script works
 
