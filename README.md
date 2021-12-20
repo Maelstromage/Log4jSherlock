@@ -33,11 +33,11 @@ Scans for the following CVEs
 # Summary
 This script starts scanning drives, once it comes upon one of the above file types it checks for file names inside the file. The first file it looks for is jndiLookup.class. This file is inside every version of log4j starting from 2.0-beta9. It reads the pom.properties file to get the file version so that it may exclude version 2.16.0, 2.17.0, and 2.12.2. It collects any Errors so that you know what has not been scanned i.e. access issues to files or folders. Creates a CSV file so you can open it up in excel and filter it. For greater detail a json file is created.
 
-# Comments
 
+# Features
 I do realize that there are a lot of scanners out there. So I will be brief and explain the core value of this scanner.
 
-1. Scans Multiple systems remotely
+1. Scans Multiple computers remotely
 2. Uses remote systems resources to make scanning fast
 3. Does not hash the jar as it could be nested or edited
 4. Identifies the following vulnerabilities CVE-2021-44228, CVE-2021-45046, CVE-2021-45105
@@ -50,16 +50,17 @@ I do realize that there are a lot of scanners out there. So I will be brief and 
 11. Identifies through pom.properties version number and if JNDI Class is present.
 
 
-[](https://github.com/Maelstromage/Log4jSherlock)
+[https://github.com/Maelstromage/Log4jSherlock](https://github.com/Maelstromage/Log4jSherlock)
 
+# Comments
 I decided to write this because I have noticed a lot of other scanners did not consider some important points that would let some of these vulnerable files through the cracks. Like:
 1. Scanner for files with Log4j in it instead of the JNDI Class
 2. Only scanning for JAR files
 3. Scanning for hashed jar files which doesn't account for nested files.
 
-This was a fun weekend project. Hope this helps someone, cheers!
 
-Nearing Completion. Need to clean up a few bugs and do some more testing.
+# Thank you
+Thank you for taking the time to read. This was a fun weekend project. Hope this helps someone, enjoy!
 
 # Author
 - Harley Schaeffer
