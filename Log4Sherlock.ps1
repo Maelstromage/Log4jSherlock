@@ -170,7 +170,7 @@ function Scan-MultipleSystems{
     }
     $exit = $false
     $combinedresults = @()
-    
+    $continue = $true
     do{
         
         foreach($job in get-job){
