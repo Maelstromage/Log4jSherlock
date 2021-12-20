@@ -1,10 +1,12 @@
-﻿$code={
+﻿$global:color = 'Magenta'
+
+$code={
+
     Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
 
     # Config
     $filetypes = @('*.JAR','*.WAR','*.EAR','*.JPI','*.HPI')
-    
 
     #Init
     $global:Errors = @()
@@ -151,7 +153,7 @@
     }
     main
 }
-$global:color = 'Magenta'
+
 function display-logo{
     $logo = " ██▓     ▒█████    ▄████       ▄▄▄  ▄▄▄██▀▀▀██████  ██░ ██ ▓█████  ██▀███   ██▓     ▒█████   ▄████▄   ██ ▄█▀`r`n▓██▒    ▒██▒  ██▒ ██▒ ▀█▒    ▄████▒   ▒██ ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██ ▒ ██▒▓██▒    ▒██▒  ██▒▒██▀ ▀█   ██▄█▒ `r`n▒██░    ▒██░  ██▒▒██░▄▄▄░  ▄█▀  ██▒   ░██ ░ ▓██▄   ▒██▀▀██░▒███   ▓██ ░▄█ ▒▒██░    ▒██░  ██▒▒▓█    ▄ ▓███▄░ `r`n▒██░    ▒██   ██░░▓█  ██▓ ██▄▄▄▄██░▓██▄██▓  ▒   ██▒░▓█ ░██ ▒▓█  ▄ ▒██▀▀█▄  ▒██░    ▒██   ██░▒▓▓▄ ▄██▒▓██ █▄ `r`n░██████▒░ ████▓▒░░▒▓███▀▒▒▓▓▓   ██  ▓███▒ ▒██████▒▒░▓█▒░██▓░▒████▒░██▓ ▒██▒░██████▒░ ████▓▒░▒ ▓███▀ ░▒██▒ █▄`r`n░ ▒░▓  ░░ ▒░▒░▒░  ░▒   ▒ ░░▒▓   █▓  ▒▓▒▒░ ▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒░░ ▒░ ░░ ▒▓ ░▒▓░░ ▒░▓  ░░ ▒░▒░▒░ ░ ░▒ ▒  ░▒ ▒▒ ▓▒`r`n░ ░ ▒  ░  ░ ▒ ▒░   ░   ░ ░ ▒▒   ▒   ▒ ░▒░ ░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░  ░▒ ░ ▒░░ ░ ▒  ░  ░ ▒ ▒░   ░  ▒   ░ ░▒ ▒░`r`n  ░ ░   ░ ░ ░ ▒  ░ ░   ░    ▒   ░   ░ ░ ░ ░  ░  ░   ░  ░░ ░   ░     ░░   ░   ░ ░   ░ ░ ░ ▒  ░        ░ ░░ ░ `r`n    ░  ░    ░ ░        ░ ░  ░       ░   ░       ░   ░  ░  ░   ░  ░   ░         ░  ░    ░ ░  ░ ░      ░  ░   `r`n                                                                                  ░               `r`n"
     write-host $logo -foreground $global:color
@@ -161,36 +163,31 @@ function display-logo{
 
 }
 function Scan-MultipleSystems{
-    get-job | stop-job
-    get-job | remove-job
     $date = get-date -Format "yyyy-MM-dd_hh-mm-ss"
     $comps = get-content "$PSScriptRoot\Computers.txt"
     $creds = Get-Credential -Message "Caution: Script will run even if you do not type your password correctly:"
     foreach ($comp in $comps){
-        Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
+        $job = Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
     }
-    $exit = $false
-    $combinedresults = @()
-    $continue = $true
-    do{
-        
-        foreach($job in get-job){
-            if ($job.state -eq 'Completed'){
-                $Received = $job | Receive-Job
-                $csv=$Received.csv
-                $txt=$Received.txt
-                $json=$Received.json
-                write-logs -csv $csv -txt $txt -json $json -date $date -comp $received.comp
-                $job | remove-job
-            }
 
+    $continue = $true
+    while($continue -eq $true) {
+        Start-Sleep -Seconds 30
+
+        if ($job.state -eq 'Completed'){
+            $Received = $job | Receive-Job
+            $csv=$Received.csv
+            $txt=$Received.txt
+            $json=$Received.json
+            write-logs -csv $csv -txt $txt -json $json -date $date -comp $received.comp
+            $job | remove-job
+            $continue = $false
+        } else {
+            $ts = New-TimeSpan -Start $job.PSBeginTime -End (Get-Date)
+            $tsString = "{0:hh}h:{0:mm}m:{0:ss}s" -f $ts
+            write-host "Script is still running. Total time elapsed: $tsString`r`nPress CTRL+C to Quit"
         }
-        if ((get-date -Format 'ss')[1] -eq '0'){
-            Get-Job -State Running
-            write-host "CTRL+C to Quit" -NoNewline
-        }
-        
-    }while($continue -ne $false)
+    }
 }
 function write-logs{
     param($csv,$txt,$json,$date,$comp)
