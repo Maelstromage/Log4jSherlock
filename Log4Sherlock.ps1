@@ -25,9 +25,9 @@ $code={
         $FixedVersion = $false
         if($hasJNDI -eq $false){$CVE = $null; $CVSSScore = $null; $FixedVersion = $false}
         if($version -eq 'version=2.15.0'){$CVE = 'CVE-2021-45046'; $CVSSScore = '9.0'; $FixedVersion = $false}
-        if($version -eq 'version=2.16.0'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $true}
+        if($version -eq 'version=2.16.0'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $false}
         if($version -eq 'version=2.17.0'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
-        if($version -eq 'version=2.12.2'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $true}
+        if($version -eq 'version=2.12.2'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $false}
         $return = @{CVE = $CVE; CVSSScore = $CVSSScore; fixedversion = $fixedversion} 
     
         return $return
