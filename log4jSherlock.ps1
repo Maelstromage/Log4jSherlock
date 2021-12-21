@@ -1,4 +1,4 @@
-﻿$code={
+$code={
     Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -35,7 +35,7 @@
 
     function write-console{
         param($CVE,$path,$version)
-        $color = $global:color
+        $color = 'magenta'
         write-host "┌[$CVE] Version: $version" -ForegroundColor $color
         write-host "└─[" -ForegroundColor $color -NoNewline
         write-host " Located: $path"
@@ -123,7 +123,7 @@
 
     
         If(!(Test-Path "$env:SystemDrive\Log4jSherlock")) { New-Item -ItemType Directory "$env:SystemDrive\Log4jSherlock" -Force }
-        $date = get-date -Format "yyyy-MM-dd_hh-mm-ss"
+        $date = get-date -Format "yyyy-MM-dd_HH-mm-ss"
         $results = Scan-System -filetypes $filetypes
 
         write-host "`r`nErrors:`r`n"
@@ -140,40 +140,40 @@
         $jsonpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.json"
         $resultpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.txt"
         $csvpath = "$env:SystemDrive\Log4jSherlock\log4jsherlock $date.csv"
-        write-host "`r`nWriting Json to $jsonpath on $env:Computername ..."
+        write-host "`r`nWriting Log Files to $env:SystemDrive\Log4jSherlock\..."
         set-content -path $jsonpath -value $results
-        write-host "`r`nWriting log to $resultpath on $env:Computername..."
         Set-Content -path $resultpath -Value $global:vulnerabilityresults
-        write-host "`r`nWriting CSV to $csvpath on $env:Computername..."
         $global:csv | export-csv $csvpath -NoTypeInformation
         return @{json=$results;txt=$global:vulnerabilityresults;csv=($global:csv | convertto-csv);comp = $env:COMPUTERNAME}
 
     }
     main
 }
-$global:color = 'Magenta'
+
 function display-logo{
     $logo = " ██▓     ▒█████    ▄████       ▄▄▄  ▄▄▄██▀▀▀██████  ██░ ██ ▓█████  ██▀███   ██▓     ▒█████   ▄████▄   ██ ▄█▀`r`n▓██▒    ▒██▒  ██▒ ██▒ ▀█▒    ▄████▒   ▒██ ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██ ▒ ██▒▓██▒    ▒██▒  ██▒▒██▀ ▀█   ██▄█▒ `r`n▒██░    ▒██░  ██▒▒██░▄▄▄░  ▄█▀  ██▒   ░██ ░ ▓██▄   ▒██▀▀██░▒███   ▓██ ░▄█ ▒▒██░    ▒██░  ██▒▒▓█    ▄ ▓███▄░ `r`n▒██░    ▒██   ██░░▓█  ██▓ ██▄▄▄▄██░▓██▄██▓  ▒   ██▒░▓█ ░██ ▒▓█  ▄ ▒██▀▀█▄  ▒██░    ▒██   ██░▒▓▓▄ ▄██▒▓██ █▄ `r`n░██████▒░ ████▓▒░░▒▓███▀▒▒▓▓▓   ██  ▓███▒ ▒██████▒▒░▓█▒░██▓░▒████▒░██▓ ▒██▒░██████▒░ ████▓▒░▒ ▓███▀ ░▒██▒ █▄`r`n░ ▒░▓  ░░ ▒░▒░▒░  ░▒   ▒ ░░▒▓   █▓  ▒▓▒▒░ ▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒░░ ▒░ ░░ ▒▓ ░▒▓░░ ▒░▓  ░░ ▒░▒░▒░ ░ ░▒ ▒  ░▒ ▒▒ ▓▒`r`n░ ░ ▒  ░  ░ ▒ ▒░   ░   ░ ░ ▒▒   ▒   ▒ ░▒░ ░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░  ░▒ ░ ▒░░ ░ ▒  ░  ░ ▒ ▒░   ░  ▒   ░ ░▒ ▒░`r`n  ░ ░   ░ ░ ░ ▒  ░ ░   ░    ▒   ░   ░ ░ ░ ░  ░  ░   ░  ░░ ░   ░     ░░   ░   ░ ░   ░ ░ ░ ▒  ░        ░ ░░ ░ `r`n    ░  ░    ░ ░        ░ ░  ░       ░   ░       ░   ░  ░  ░   ░  ░   ░         ░  ░    ░ ░  ░ ░      ░  ░   `r`n                                                                                  ░               `r`n"
-    write-host $logo -foreground $global:color
+    write-host $logo -foreground 'magenta'
     write-host "Version: 1.0.2021.12.19"
     write-host "Written by Harley Schaeffer"
     write-host "https://github.com/Maelstromage/Log4jSherlock`r`n"
+    write-host "Hit Ctrl+C to Quit"
 
 }
 function Scan-MultipleSystems{
     get-job | stop-job
     get-job | remove-job
-    $date = get-date -Format "yyyy-MM-dd_hh-mm-ss"
+    $date = get-date -Format "yyyy-MM-dd_HH-mm-ss"
     $comps = get-content "$PSScriptRoot\Computers.txt"
-    $creds = Get-Credential -Message "Caution: Script will run even if you do not type your password correctly:"
+    #$creds = Get-Credential -Message "Caution: Script will run even if you do not type your password correctly probably locking you out:"
     foreach ($comp in $comps){
-        Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
+        #Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
+        Invoke-Command -computername $comp -ScriptBlock $code -AsJob
     }
     $exit = $false
     $combinedresults = @()
     $continue = $true
     do{
-        
+
         foreach($job in get-job){
             if ($job.state -eq 'Completed'){
                 $Received = $job | Receive-Job
@@ -182,27 +182,33 @@ function Scan-MultipleSystems{
                 $json=$Received.json
                 write-logs -csv $csv -txt $txt -json $json -date $date -comp $received.comp
                 $job | remove-job
+                get-job
+            }
+
+        }        foreach($job in get-job){
+        if ($job.state -eq 'Failed'){
+                $Received = $job | Receive-Job
+                $txt=$Received
+                write-logs -csv $null -txt $txt -json $null -date $date -comp $received.comp
+                $job | remove-job
             }
 
         }
-        if ((get-date -Format 'ss')[1] -eq '0'){
-            Get-Job -State Running
-            write-host "CTRL+C to Quit" -NoNewline
-        }
+        if ((Get-Job -state running) -eq $null){$continue = $false}
+        
         
     }while($continue -ne $false)
+    get-job
 }
 function write-logs{
     param($csv,$txt,$json,$date,$comp)
-    if(!(test-path "$PSScriptRoot\Logs $date")){New-Item -ItemType Directory -Path $PSScriptRoot -Name "Logs $date"}
+    if(!(test-path "$PSScriptRoot\Logs $date")){New-Item -ItemType Directory -Path $PSScriptRoot -Name "Logs $date" | out-null}
 
     $path = "$PSScriptRoot\Logs $date\$comp $date"
-    write-host "`r`nWriting Json to $path.json..."
-    set-content -path "$path.json" -value $json
-    write-host "`r`nWriting log to $path.txt..."
-    Set-Content -path "$path.txt" -Value $txt
-    write-host "`r`nWriting CSV to $path.csv..."
-    Set-Content -path "$path.csv" -Value $csv
+    write-host "`r`nWriting logs to $PSScriptRoot\Logs $date\$comp $date "
+    if($json -ne $null){set-content -path "$path.json" -value $json}
+    if($txt -ne $null){Set-Content -path "$path.txt" -Value $txt}
+    if($csv -ne $null){Set-Content -path "$path.csv" -Value $csv}
 
 }
 
