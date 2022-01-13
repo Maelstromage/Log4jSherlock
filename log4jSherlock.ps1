@@ -1,10 +1,9 @@
 ﻿$code={
+    param($global:remediation = 'Search Only')
     Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-
     # Config
     $filetypes = @('*.JAR','*.WAR','*.EAR','*.JPI','*.HPI')
-    
 
     #Init
     $global:Errors = @()
@@ -19,7 +18,6 @@
 
     function Check-Version{
         param($version,$hasJNDI)
-    
         $CVE = 'CVE-2021-44228'
         $CVSSScore = '10.0'
         $FixedVersion = $false
@@ -29,7 +27,6 @@
         if($version -eq 'version=2.17.0'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
         if($version -eq 'version=2.12.2'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $false}
         $return = @{CVE = $CVE; CVSSScore = $CVSSScore; fixedversion = $fixedversion} 
-    
         return $return
     }
 
@@ -41,7 +38,14 @@
         write-host " Located: $path"
         $global:vulnerabilityresults += "┌[$CVE] Version: $version`r`n└─[ Located: $path"
     }
+    function remove-file{
+        
+        if($global:remediation -eq 'Search Only'){return 'Search Only mode: not remediated'}
+        if($global:remediation -eq 'Remove JNDILookup.class'){return 'JNDILookup.class removed'}
+        if($global:remediation -eq 'Remove Java file'){return 'Java file removed'}
+        return $remresult
 
+    }
     function Scan-File{
         param($path)
         $path = $path.fullname
@@ -77,6 +81,7 @@
         if ($hasJNDI -and !($versionCVE.fixedversion)){
             $vuln = $true
             write-console -CVE $versionCVE.CVE -path $path -version $version
+            $remresult = remove-file 
 
         }else{$vuln = $false}
         $return = @{
@@ -91,6 +96,7 @@
                 FixedVersion = $versionCVE.fixedversion
                 Vulnerable = $vuln
                 ComputerName = $env:COMPUTERNAME
+                Remediated = $remresult 
         }
         return $return
     }
@@ -99,9 +105,12 @@
         param($filetypes)
         $scannedfiles =@()
         $DriveErrors = @()
-        $Drives = (Get-PSDrive -PSProvider FileSystem | Select-Object Root, DisplayRoot | Where-Object {$_.DisplayRoot -eq $null}).root
+        $drives = (Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType ='3'").DeviceID
+        #$Drives = (Get-PSDrive -PSProvider FileSystem | Select-Object Root, DisplayRoot | Where-Object {$_.DisplayRoot -eq $null}).root
         #$drives = @('c:\test','g:\test\')
+        
         foreach ($Drive in $Drives) {
+            $drive = "$drive\"
             $searchingmessage = "Searching Drive $drive on host $env:ComputerName..."
             write-host $searchingmessage -ForegroundColor Cyan
             $global:vulnerabilityresults += $searchingmessage
@@ -150,30 +159,105 @@
     main
 }
 
-function display-logo{
-    $logo = " ██▓     ▒█████    ▄████       ▄▄▄  ▄▄▄██▀▀▀██████  ██░ ██ ▓█████  ██▀███   ██▓     ▒█████   ▄████▄   ██ ▄█▀`r`n▓██▒    ▒██▒  ██▒ ██▒ ▀█▒    ▄████▒   ▒██ ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██ ▒ ██▒▓██▒    ▒██▒  ██▒▒██▀ ▀█   ██▄█▒ `r`n▒██░    ▒██░  ██▒▒██░▄▄▄░  ▄█▀  ██▒   ░██ ░ ▓██▄   ▒██▀▀██░▒███   ▓██ ░▄█ ▒▒██░    ▒██░  ██▒▒▓█    ▄ ▓███▄░ `r`n▒██░    ▒██   ██░░▓█  ██▓ ██▄▄▄▄██░▓██▄██▓  ▒   ██▒░▓█ ░██ ▒▓█  ▄ ▒██▀▀█▄  ▒██░    ▒██   ██░▒▓▓▄ ▄██▒▓██ █▄ `r`n░██████▒░ ████▓▒░░▒▓███▀▒▒▓▓▓   ██  ▓███▒ ▒██████▒▒░▓█▒░██▓░▒████▒░██▓ ▒██▒░██████▒░ ████▓▒░▒ ▓███▀ ░▒██▒ █▄`r`n░ ▒░▓  ░░ ▒░▒░▒░  ░▒   ▒ ░░▒▓   █▓  ▒▓▒▒░ ▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒░░ ▒░ ░░ ▒▓ ░▒▓░░ ▒░▓  ░░ ▒░▒░▒░ ░ ░▒ ▒  ░▒ ▒▒ ▓▒`r`n░ ░ ▒  ░  ░ ▒ ▒░   ░   ░ ░ ▒▒   ▒   ▒ ░▒░ ░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░  ░▒ ░ ▒░░ ░ ▒  ░  ░ ▒ ▒░   ░  ▒   ░ ░▒ ▒░`r`n  ░ ░   ░ ░ ░ ▒  ░ ░   ░    ▒   ░   ░ ░ ░ ░  ░  ░   ░  ░░ ░   ░     ░░   ░   ░ ░   ░ ░ ░ ▒  ░        ░ ░░ ░ `r`n    ░  ░    ░ ░        ░ ░  ░       ░   ░       ░   ░  ░  ░   ░  ░   ░         ░  ░    ░ ░  ░ ░      ░  ░   `r`n                                                                                  ░               `r`n"
-    write-host $logo -foreground 'magenta'
-    write-host "Version: 1.0.2021.12.19"
-    write-host "Written by Harley Schaeffer"
-    write-host "https://github.com/Maelstromage/Log4jSherlock`r`n"
-    write-host "Hit Ctrl+C to Quit"
 
+function get-menu{
+    $user = $env:username
+    $continue = $true
+    $creds = $null
+    $remediation = 'Search Only'
+    $remmessage = 'Log4jSherlock will only scan and report but will not remediate.'
+    
+    do{
+        cls
+        $logo = " ██▓     ▒█████    ▄████       ▄▄▄  ▄▄▄██▀▀▀██████  ██░ ██ ▓█████  ██▀███   ██▓     ▒█████   ▄████▄   ██ ▄█▀`r`n▓██▒    ▒██▒  ██▒ ██▒ ▀█▒    ▄████▒   ▒██ ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██ ▒ ██▒▓██▒    ▒██▒  ██▒▒██▀ ▀█   ██▄█▒ `r`n▒██░    ▒██░  ██▒▒██░▄▄▄░  ▄█▀  ██▒   ░██ ░ ▓██▄   ▒██▀▀██░▒███   ▓██ ░▄█ ▒▒██░    ▒██░  ██▒▒▓█    ▄ ▓███▄░ `r`n▒██░    ▒██   ██░░▓█  ██▓ ██▄▄▄▄██░▓██▄██▓  ▒   ██▒░▓█ ░██ ▒▓█  ▄ ▒██▀▀█▄  ▒██░    ▒██   ██░▒▓▓▄ ▄██▒▓██ █▄ `r`n░██████▒░ ████▓▒░░▒▓███▀▒▒▓▓▓   ██  ▓███▒ ▒██████▒▒░▓█▒░██▓░▒████▒░██▓ ▒██▒░██████▒░ ████▓▒░▒ ▓███▀ ░▒██▒ █▄`r`n░ ▒░▓  ░░ ▒░▒░▒░  ░▒   ▒ ░░▒▓   █▓  ▒▓▒▒░ ▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒░░ ▒░ ░░ ▒▓ ░▒▓░░ ▒░▓  ░░ ▒░▒░▒░ ░ ░▒ ▒  ░▒ ▒▒ ▓▒`r`n░ ░ ▒  ░  ░ ▒ ▒░   ░   ░ ░ ▒▒   ▒   ▒ ░▒░ ░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░  ░▒ ░ ▒░░ ░ ▒  ░  ░ ▒ ▒░   ░  ▒   ░ ░▒ ▒░`r`n  ░ ░   ░ ░ ░ ▒  ░ ░   ░    ▒   ░   ░ ░ ░ ░  ░  ░   ░  ░░ ░   ░     ░░   ░   ░ ░   ░ ░ ░ ▒  ░        ░ ░░ ░ `r`n    ░  ░    ░ ░        ░ ░  ░       ░   ░       ░   ░  ░  ░   ░  ░   ░         ░  ░    ░ ░  ░ ░      ░  ░   `r`n                                                                                  ░               `r`n"
+        write-host $logo -foreground 'magenta'
+        write-host "Version: 1.1.2022.1.12"
+        write-host "Written by Harley Schaeffer"
+        write-host "https://github.com/Maelstromage/Log4jSherlock`r`n"
+        write-host '[*]==================== Menu ====================[*]'
+        write-host ""
+        write-host "[U] - Run as a different user. Current user: [" -nonewline 
+        write-host $user -nonewline -foreground magenta
+        write-host "]"
+        <#
+        write-host "[V] - Remediate Vulnerability type: [" -nonewline
+        write-host "$remediation" -nonewline -foreground magenta
+        write-host "]"
+        write-host "    ($remmessage)" -ForegroundColor red
+        #>
+        write-host "[R] - Run with above parameters"
+        write-host "Enter a Letter to continue"
+        $readhost = Read-Host
+        switch ($readhost){
+            'U' {
+                $creds = Get-Credential
+                $user = $creds.username
+            }
+            <#
+            'V' {
+                write-host "`r`nSelect a remediation type"
+                write-host "1. Search Only (Log4jSherlock will only scan and report but will not remediate.)"
+                write-host "2. Remove JNDILookup.class (Remediates the vulnerability and has the best chance to not break functinality. Other scanners might read as false positive.)"
+                write-host "3. Remove Java file (Removes the entire JAR, WAR, EAR, JPI, or HPI file. Will break Log4j functionality. )"
+                write-host "Warning: removing JNDILookup.class or the Java file itself can break the functionality of the machine in question, do so at your own risk." -ForegroundColor red
+                $remediationselection = read-host
+                switch ($remediationselection){
+                    1 {
+                        $remediation = 'Search Only'
+                        $remmessage = "Log4jSherlock will only scan and report but will not remediate."
+                    }
+                    2 {
+                        $remediation = 'Remove JNDILookup.class'
+                        $remmessage = "Warning: removing JNDILookup.class or the Java file itself can break the functionality of the machine in question, do so at your own risk. `r`n    Remediates the vulnerability and has the best chance to not break functinality. Other scanners might read as false positive."
+                    }
+                    3 {
+                        $remediation = 'Remove Java file'
+                        $remmessage = "Warning: removing JNDILookup.class or the Java file itself can break the functionality of the machine in question, do so at your own risk. `r`n    Removes the entire JAR, WAR, EAR, JPI, or HPI file. Will break Log4j functionality."
+                    }
+                    default {
+                        write-host "Incorrect input. Press any key to continue"
+                        Read-Host
+                    }
+
+
+                }
+            }
+            #>
+            'R' {
+                $continue = $false
+                Scan-MultipleSystems -creds $creds
+
+            }
+            default {
+                write-host "Please enter one of the values above. example: 1, 2, 3. Press any key to continue."
+                read-host
+            }
+
+        }
+    }while($continue -eq $true)    
+    
 }
+
 function Scan-MultipleSystems{
+    param($creds=$null)
     get-job | stop-job
     get-job | remove-job
     $date = get-date -Format "yyyy-MM-dd_HH-mm-ss"
     $comps = get-content "$PSScriptRoot\Computers.txt"
     #$creds = Get-Credential -Message "Caution: Script will run even if you do not type your password correctly probably locking you out:"
     foreach ($comp in $comps){
-        #Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
-        Invoke-Command -computername $comp -ScriptBlock $code -AsJob
+        Get-Service -Name WinRM -ComputerName $comp | Set-Service -Status Running
+        if ($creds -ne $null){
+            Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
+        }else{
+            Invoke-Command -computername $comp -ScriptBlock $code -AsJob
+        }
     }
-    $exit = $false
+    #$exit = $false
     $combinedresults = @()
     $continue = $true
     do{
-
+        if ((Get-Job -state running) -eq $null){$continue = $false}
         foreach($job in get-job){
             if ($job.state -eq 'Completed'){
                 $Received = $job | Receive-Job
@@ -184,7 +268,6 @@ function Scan-MultipleSystems{
                 $job | remove-job
                 get-job
             }
-
         }        foreach($job in get-job){
         if ($job.state -eq 'Failed'){
                 $Received = $job | Receive-Job
@@ -192,10 +275,7 @@ function Scan-MultipleSystems{
                 write-logs -csv $null -txt $txt -json $null -date $date -comp $received.comp
                 $job | remove-job
             }
-
         }
-        if ((Get-Job -state running) -eq $null){$continue = $false}
-        
         
     }while($continue -ne $false)
     get-job
@@ -212,5 +292,7 @@ function write-logs{
 
 }
 
-display-logo
-Scan-MultipleSystems
+
+
+get-menu
+

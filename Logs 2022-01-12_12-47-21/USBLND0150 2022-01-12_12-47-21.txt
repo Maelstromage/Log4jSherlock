@@ -1,0 +1,8 @@
+Searching Drive C:\ on host USBLND0150...
++[CVE-2021-44228] Version: version=2.12.0
++-[ Located: C:\Program Files (x86)\Arduino\lib\log4j-core-2.12.0.jar
+
+Errors:
+
++[
++-[
