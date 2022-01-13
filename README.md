@@ -17,7 +17,7 @@ Scans for the following CVEs
 
 
 # Usage
-1. Download the ps1 file https://raw.githubusercontent.com/Maelstromage/Log4jSherlock/main/Log4Sherlock.ps1
+1. Download the ps1 file https://github.com/Maelstromage/Log4jSherlock/blob/9c529e813ed5682c39c2d1e7d464438914e5d220/log4jSherlock.ps1
 2. Create the file computers.txt
 3. Fill computers.txt with hostnames
 4. Run ps1
