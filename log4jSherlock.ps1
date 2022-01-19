@@ -18,13 +18,25 @@
 
     function Check-Version{
         param($version,$hasJNDI)
+        
+        if($version -ne $null){
+            $parsedVer = $version.replace('version=','').split('.')
+        }else{
+            $parsedVer = (0,0,0)
+        }
         $CVE = 'CVE-2021-44228'
         $CVSSScore = '10.0'
         $FixedVersion = $false
         if($hasJNDI -eq $false){$CVE = $null; $CVSSScore = $null; $FixedVersion = $false}
         if($version -eq 'version=2.15.0'){$CVE = 'CVE-2021-45046'; $CVSSScore = '9.0'; $FixedVersion = $false}
         if($version -eq 'version=2.16.0'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $false}
-        if($version -eq 'version=2.17.0'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
+        
+        if($parsedVer[0] -gt '2'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
+        if($parsedVer[0] -eq '2' -and $parsedVer[1] -gt '16'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
+
+        #if($version -eq 'version=2.17.0'){$CVE = $null; $CVSSScore = $null; $FixedVersion = $true}
+
+
         if($version -eq 'version=2.12.2'){$CVE = 'CVE-2021-45105'; $CVSSScore = '7.5'; $FixedVersion = $false}
         $return = @{CVE = $CVE; CVSSScore = $CVSSScore; fixedversion = $fixedversion} 
         return $return
@@ -107,7 +119,7 @@
         $DriveErrors = @()
         $drives = (Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType ='3'").DeviceID
         #$Drives = (Get-PSDrive -PSProvider FileSystem | Select-Object Root, DisplayRoot | Where-Object {$_.DisplayRoot -eq $null}).root
-        #$drives = @('c:\test','g:\test\')
+        $drives = @('c:\test','g:\test\')
         
         foreach ($Drive in $Drives) {
             $drive = "$drive\"
@@ -246,7 +258,7 @@ function Scan-MultipleSystems{
     $comps = get-content "$PSScriptRoot\Computers.txt"
     #$creds = Get-Credential -Message "Caution: Script will run even if you do not type your password correctly probably locking you out:"
     foreach ($comp in $comps){
-        Get-Service -Name WinRM -ComputerName $comp | Set-Service -Status Running
+        Get-Service -Name WinRM -ComputerName $comp -ErrorAction silentlycontinue | out-null |  Set-Service -Status Running
         if ($creds -ne $null){
             Invoke-Command -credential $creds -computername $comp -ScriptBlock $code -AsJob
         }else{
