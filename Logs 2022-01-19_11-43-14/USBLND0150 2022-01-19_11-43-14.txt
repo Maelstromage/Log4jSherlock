@@ -1,9 +1,0 @@
-Searching Drive c:\test\ on host USBLND0150...
-+[CVE-2021-44228] Version: version=2.17.1
-+-[ Located: C:\test\apache-log4j-2.17.1-bin\log4j-core-2.17.1.jar
-Searching Drive g:\test\\ on host USBLND0150...
-
-Errors:
-
-+[Cannot find drive. A drive with the name 'g' does not exist.
-+-[
